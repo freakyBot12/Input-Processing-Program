@@ -1,0 +1,87 @@
+Selea Tudor-Octavian - 332CA - Tema1 - APD
+
+map_files_t:
+    - structura de date cu care vor lucra thread-urile Mapper
+    - aceasta contine
+        - (generated_lists) matrice de vectori:
+            - contine listele partiale generate de toate Mapperele
+            - pe linii se afla listele partiale generate de un Mapper
+            (linia 0 corespunde Mapperului 0, linia 1 Mapperului 1, etc.)
+            - pe coloane se afla vectori, acestia continand numerele care sunt
+            puteri perfecte ale exponentului corespunzator coloanei
+            (coloana 0 corespunde exponentului 2, coloana 1 exponentului 3, etc.)
+
+        - files:
+            - lista de fisiere ce vor fi parsate de Mappere
+
+        - mutex:
+            - folosit pentru accesarea listei de fisiere de un singur Mapper la un
+            moment dat
+
+        - barrier:
+            - inainte ca Reducerele sa-si inceapa executia, trebuie sa stie ca toate
+        Mapperele au terminat de parsat toate fisierele din lista de fisiere
+
+        - current_iteration:
+            - aceasta variabila retine fisierul care va fi accesat de Mapper cand
+            intra in zona critica (daca variabila este 3, Mapperul din zona critica
+            va parsa fisierul al 4-lea din lista de fisiere). In acest fel, se
+            previne parsarea unui fisier de mai multe Mappere
+        
+        - exponent:
+            - puterea maxima pana la care Mapperul va verifica daca un numar este
+            putere perfecta
+        
+        - thread_id:
+            - id-ul Mapperului
+
+reduce_lists_t:
+    - structura de date folosita pentru concatenarea listelor (generate de Mappere)
+    de catre thread-urile Reducer
+    - aceasta contine:
+        - generated_lists (matrice de vectori) :
+            - comuna cu matricea de vectori a Mapperelor
+
+        - barrier:
+            - comuna cu barrier-ul Mapperelor
+
+        - number_of_mappers:
+            - folosit pentru accesarea matricii de vectori
+        
+        -thread_id:
+            - id-ul Reducerului
+
+mapping_function:
+    - un singur Mapper va accesa la un moment dat lista de fisiere (justificand
+    astfel prezenta mutexului)
+    - daca current_iteration este >= numarul de fisiere, executia Mapperelor care
+    asteapta sa selecteze un fisier pentru parsare sare la finalul functiei, intrucat
+    nu mai exista fisiere de parsat
+    - folosind cautare binara, Mapperul va determina, pentru fiecare exponent de la 2
+    pana la (numarul de Reducere + 1), care dintre numerele din fisierul ales sunt
+    puteri perfecte. Numerele sunt adaugate in matricea de vectori conform explicatiilor
+    de mai sus (vezi descrierea variabilei "generated_lists" din map_files_t)
+
+reduce_function:
+    - aceeasi matrice de vectori populata de Mappere va fi folosita de Reducere pentru a
+    concatena vectorii de pe coloanele corespunzatoare (Reducer-ul 0 va concatena vectorii
+    de pe coloana 0, Reducer-ul vectorii de pe coloana 1, etc.)
+    - "concatenarea" se realizeaza adaugand elementele vectorilor de pe coloane intr-un
+    vector care nu va contine duplicate
+
+Obs1!
+    "vec_of_files" permite Mapperelor sa prelucreze aceeasi matrice de vectori, sa
+incrementeze acelasi "current_iteration",sa foloseasca acelasi mutex si aceeasi bariera
+pentru id-uri diferite al Mapperelor.
+    Analog pentru "vec_of_lists_to_reduce".
+
+Obs2!
+    Intrucat thread-urile Reducer ajung (in principiu) mai repede la bariera decat
+thread-urile Mapper, iar thread-urile Mapper trebuie sa parseze toate fisierele inainte
+ca thread-urile Reducer sa-si inceapa executia, este necesar ca toate
+thread-urile (atat Reducer, cat si Mapper) sa ajunga la bariera inainte de
+inceperea executiei thread-urilor Reducer!
+
+Obs3!
+    Fisierele vor fi selectate de Mappere in ordinea din fisierul de fisiere!
+
